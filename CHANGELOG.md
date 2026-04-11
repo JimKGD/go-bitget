@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.1.0] - 2026-04-12
+
+### ⚠️ Still Alpha
+Pre-1.0 release. Public API continues to change without backward-compatibility guarantees.
+
+### Added
+- **UTA v3 query services** (`uta/`)
+  - `GetOpenOrdersService` — `GET /api/v3/trade/unfilled-orders`, with `Category`/`Symbol`/`OrderID`/`ClientOid`/`OrderType`/`StartTime`/`EndTime`/`Limit`/`Cursor` setters. Returns `([]UnfilledOrder, cursor, error)`.
+  - `GetCurrentPositionsService` — `GET /api/v3/position/current-position`, with `Category`/`Symbol`/`Side` setters. Returns `([]CurrentPosition, error)`.
+  - New response types `UnfilledOrder`, `OrderFeeItem`, `CurrentPosition` with correct UTA v3 JSON tags (`qty`, `cumExecQty`, `posSide`, `orderStatus`, etc.).
+- **`uta.ErrNotImplemented`** sentinel returned by every stub in `services_stubs.go`. Callers can match with `errors.Is`.
+
+### Changed
+- **WebSocket client concurrency (`ws/`)**: `BaseWsClient` now protects its subscription map with `sync.RWMutex` and its connection state (`connected`, `loginStatus`, `needLogin`, `reconnecting`, `webSocketClient`, timestamps) with a `sync.Mutex`. Passes `go test -race`.
+- **WebSocket lifecycle**: `Close()` is idempotent, stops `tickerLoop`, `ReadLoop`, the ping cron, and the health-check ticker via `stopCh` + `closeOnce`. `performReconnection` aborts when the client is closed.
+- **`SubscribeMarkPrice`** now subscribes to the real `mark-price` channel instead of routing to `ticker`.
+- **`UnsubscribePositions`** now uses the `"default"` symbol to mirror `SubscribePositions`. Previously unsubscribe silently failed.
+- **UTA HTTP client**: `CallAPI` refactored into `doRequest` + retry loop. Automatically retries on HTTP `429`/`503`/`504` with exponential backoff (500 ms → 10 s, 3 attempts) and respects `ctx.Deadline()`. Request bodies are no longer logged at DEBUG (only size).
+- **Futures HTTP client**: retry loop extended to recognise HTTP `429`/`503`/`504`; backoff respects `context` cancellation; response headers are copied before `ReleaseResponse`.
+- **`futures/account.SetLeverageService`** now validates that at least one of `leverage`/`longLeverage`/`shortLeverage` is set.
+- **`futures/account.SetMarginModeService`** omits `marginCoin` from the request body when empty instead of sending `""`.
+- **`futures/account.SetPositionModeResponse`** JSON tag for `PositionMode` changed from `positionMode` to `posMode` to match the Bitget v2 API.
+
+### Fixed
+- **Critical**: data races in `ws/` around `subscriptions` map and connection-state flags (`go test -race` now clean).
+- **Critical**: `uta/services_stubs.go` methods no longer silently return `nil, nil`; they return `ErrNotImplemented` so callers get a loud failure.
+- **Critical**: goroutine / ticker / cron leaks on `BaseWsClient.Close()`.
+- `ws.Unsubscribe*` helpers now correctly remove positions subscriptions.
+- Broken unit tests that blocked CI: `SubscribeFills`/`SubscribeAccount` mock signatures, `HoldSide` rename, `Position.Total` vs `Size`, `qty`/`posSide` fields in UTA place-order expected body, `url.Values(nil)` typing, `posMode`/`one_way_mode` constants, and the `SafeStringCast` panic assertion.
+
 ## [v0.0.1] - 2025-01-31
 
 ### ⚠️ ALPHA RELEASE WARNING
