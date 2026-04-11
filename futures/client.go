@@ -99,42 +99,37 @@ func NewClient(apiKey, secretKey, passphrase string) *Client {
 	}
 }
 
-// callAPI sends an HTTP request to the specified Bitget API endpoint with automatic retry logic.
-// It handles request signing, authentication headers, and error retry for transient failures.
-//
-// Parameters:
-//   - ctx: Context for request cancellation and timeout
-//   - method: HTTP method (GET, POST, etc.)
-//   - endpoint: API endpoint path
-//   - queryParams: URL query parameters
-//   - body: Request body for POST requests
-//   - sign: Whether the request requires authentication signing
+// CallAPI sends an HTTP request to the specified Bitget API endpoint with
+// automatic retry logic. It handles request signing, authentication headers,
+// and exponential backoff for transient failures (network errors, HTTP 429/503/504).
 //
 // Returns the API response, response headers, and any error encountered.
-// Implements exponential backoff retry for retryable errors (network timeouts, etc.).
 func (c *Client) CallAPI(ctx context.Context, method string, endpoint string, queryParams url.Values, body []byte, sign bool) (*client.ApiResponse, *fasthttp.ResponseHeader, error) {
-	const maxRetries = 3
-	var backoff = 1 * time.Second
+	const (
+		maxRetries     = 3
+		initialBackoff = 500 * time.Millisecond
+		maxBackoff     = 10 * time.Second
+		requestTimeout = 5 * time.Second
+	)
 
+	backoff := initialBackoff
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		req := fasthttp.AcquireRequest()
 		resp := fasthttp.AcquireResponse()
 
 		// Build URL
 		requestURL := c.GetUrl(endpoint)
-		if queryParams != nil && len(queryParams) > 0 {
+		if len(queryParams) > 0 {
 			requestURL += "?" + queryParams.Encode()
 		}
 		req.SetRequestURI(requestURL)
 
-		// Set method and body
 		req.Header.SetMethod(method)
 		if method == "POST" {
 			req.SetBody(body)
 			req.Header.Set("Content-Type", "application/json")
 		}
 
-		// Sign the request if needed
 		if sign {
 			ts := common.TimestampMs()
 			req.Header.Set("ACCESS-TIMESTAMP", ts)
@@ -144,74 +139,121 @@ func (c *Client) CallAPI(ctx context.Context, method string, endpoint string, qu
 
 			var reqParamStr string
 			if method == "GET" {
-				reqParamStr = "?" + queryParams.Encode()
+				if len(queryParams) > 0 {
+					reqParamStr = "?" + queryParams.Encode()
+				}
 			} else {
 				reqParamStr = string(body)
 			}
-			sign := c.signer.Sign(method, endpoint, reqParamStr, ts)
-			req.Header.Set("ACCESS-SIGN", sign)
+			signature := c.signer.Sign(method, endpoint, reqParamStr, ts)
+			req.Header.Set("ACCESS-SIGN", signature)
 		}
 
-		// Execute request
+		// Execute with context cancellation support.
 		done := make(chan error, 1)
 		go func() {
-			err := c.fastClient.DoTimeout(req, resp, 5*time.Second)
-			done <- err
+			done <- c.fastClient.DoTimeout(req, resp, requestTimeout)
 		}()
 
+		var err error
 		select {
 		case <-ctx.Done():
 			fasthttp.ReleaseRequest(req)
 			fasthttp.ReleaseResponse(resp)
 			return nil, nil, ctx.Err()
-		case err := <-done:
-			if err != nil {
-				// Handle retryable errors
-				if isRetryableError(err) {
-					fasthttp.ReleaseRequest(req)
-					fasthttp.ReleaseResponse(resp)
-					if attempt == maxRetries-1 {
-						return nil, nil, err
-					}
-					time.Sleep(backoff)
-					backoff *= 2
-					continue
-				}
+		case err = <-done:
+		}
 
-				// Return non-retryable errors immediately
-				fasthttp.ReleaseRequest(req)
-				fasthttp.ReleaseResponse(resp)
-				return nil, nil, err
-			}
-
-			// Process response
-			if resp.StatusCode() >= http.StatusBadRequest {
-				apiErr := &types.APIError{}
-				if err := jsoniter.Unmarshal(resp.Body(), apiErr); err != nil {
-					fasthttp.ReleaseRequest(req)
-					fasthttp.ReleaseResponse(resp)
-					return nil, nil, fmt.Errorf("error parsing API response: %w", err)
-				}
-				fasthttp.ReleaseRequest(req)
-				fasthttp.ReleaseResponse(resp)
-				return nil, nil, apiErr
-			}
-
-			// Success case
-			var apiResp client.ApiResponse
-			if err := jsoniter.Unmarshal(resp.Body(), &apiResp); err != nil {
-				fasthttp.ReleaseRequest(req)
-				fasthttp.ReleaseResponse(resp)
-				return nil, nil, err
-			}
-
+		if err != nil {
 			fasthttp.ReleaseRequest(req)
 			fasthttp.ReleaseResponse(resp)
-			return &apiResp, &resp.Header, nil
+
+			if isRetryableError(err) && attempt < maxRetries-1 {
+				if sleepErr := sleepWithContext(ctx, backoff); sleepErr != nil {
+					return nil, nil, sleepErr
+				}
+				backoff = nextBackoff(backoff, maxBackoff)
+				continue
+			}
+			return nil, nil, err
 		}
+
+		statusCode := resp.StatusCode()
+
+		// Retryable HTTP statuses: 429 (rate-limited), 503, 504.
+		if statusCode == http.StatusTooManyRequests ||
+			statusCode == http.StatusServiceUnavailable ||
+			statusCode == http.StatusGatewayTimeout {
+			responseBody := string(resp.Body())
+			fasthttp.ReleaseRequest(req)
+			fasthttp.ReleaseResponse(resp)
+
+			if attempt == maxRetries-1 {
+				return nil, nil, fmt.Errorf("API request failed with status %d after %d retries: %s", statusCode, maxRetries, responseBody)
+			}
+
+			c.Logger.Warn().
+				Int("status_code", statusCode).
+				Int("attempt", attempt+1).
+				Dur("backoff", backoff).
+				Msg("Rate-limited or transient failure, retrying")
+
+			if sleepErr := sleepWithContext(ctx, backoff); sleepErr != nil {
+				return nil, nil, sleepErr
+			}
+			backoff = nextBackoff(backoff, maxBackoff)
+			continue
+		}
+
+		// Any other client/server error is terminal.
+		if statusCode >= http.StatusBadRequest {
+			apiErr := &types.APIError{}
+			if unmarshalErr := jsoniter.Unmarshal(resp.Body(), apiErr); unmarshalErr != nil {
+				fasthttp.ReleaseRequest(req)
+				fasthttp.ReleaseResponse(resp)
+				return nil, nil, fmt.Errorf("error parsing API response (status %d): %w", statusCode, unmarshalErr)
+			}
+			fasthttp.ReleaseRequest(req)
+			fasthttp.ReleaseResponse(resp)
+			return nil, nil, apiErr
+		}
+
+		// Success path.
+		var apiResp client.ApiResponse
+		if err := jsoniter.Unmarshal(resp.Body(), &apiResp); err != nil {
+			fasthttp.ReleaseRequest(req)
+			fasthttp.ReleaseResponse(resp)
+			return nil, nil, err
+		}
+
+		// Copy header so the caller keeps it after releasing.
+		headerCopy := &fasthttp.ResponseHeader{}
+		resp.Header.CopyTo(headerCopy)
+		fasthttp.ReleaseRequest(req)
+		fasthttp.ReleaseResponse(resp)
+		return &apiResp, headerCopy, nil
 	}
 
 	return nil, nil, fmt.Errorf("max retries exceeded")
+}
+
+// sleepWithContext sleeps for d, returning early if ctx is cancelled.
+func sleepWithContext(ctx context.Context, d time.Duration) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(d):
+		return nil
+	}
+}
+
+// nextBackoff doubles the current backoff, capped at maxBackoff.
+func nextBackoff(current, maxBackoff time.Duration) time.Duration {
+	next := current * 2
+	if next > maxBackoff {
+		return maxBackoff
+	}
+	return next
 }
 
 // isRetryableError determines if an error is transient and worth retrying.

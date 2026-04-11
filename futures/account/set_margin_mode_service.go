@@ -57,7 +57,9 @@ func (s *SetMarginModeService) Do(ctx context.Context) (*SetMarginModeResponse, 
 		"symbol":      s.symbol,
 		"productType": string(s.productType),
 		"marginMode":  string(s.marginMode),
-		"marginCoin":  s.marginCoin,
+	}
+	if s.marginCoin != "" {
+		params["marginCoin"] = s.marginCoin
 	}
 
 	body, err := json.Marshal(params)

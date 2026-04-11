@@ -73,6 +73,9 @@ func (s *SetLeverageService) checkRequiredParams() error {
 	if s.marginCoin == "" {
 		return fmt.Errorf("marginCoin is required")
 	}
+	if s.leverage == "" && s.longLeverage == "" && s.shortLeverage == "" {
+		return fmt.Errorf("leverage is required (or longLeverage/shortLeverage pair)")
+	}
 
 	return nil
 }

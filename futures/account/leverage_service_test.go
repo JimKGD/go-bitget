@@ -22,13 +22,13 @@ func TestSetLeverageService_FluentAPI(t *testing.T) {
 		ProductType(futures.ProductTypeUSDTFutures).
 		MarginCoin("USDT").
 		Leverage("10").
-		TradeSide("long")
+		HoldSide("long")
 
 	assert.Equal(t, "BTCUSDT", result.symbol)
 	assert.Equal(t, futures.ProductTypeUSDTFutures, result.productType)
 	assert.Equal(t, "USDT", result.marginCoin)
 	assert.Equal(t, "10", result.leverage)
-	assert.Equal(t, "long", result.tradeSide)
+	assert.Equal(t, "long", result.holdSide)
 	assert.Equal(t, service, result, "Should return the same service instance for chaining")
 }
 
@@ -78,7 +78,7 @@ func TestSetLeverageService_Do_Success(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
-func TestSetLeverageService_Do_Success_WithTradeSide(t *testing.T) {
+func TestSetLeverageService_Do_Success_WithHoldSide(t *testing.T) {
 	// Mock successful API response
 	mockApiResponse := &futures.ApiResponse{
 		Code:        "00000",
@@ -91,12 +91,12 @@ func TestSetLeverageService_Do_Success_WithTradeSide(t *testing.T) {
 	mockClient := &MockClient{}
 	service := &SetLeverageService{c: mockClient}
 
-	// Set up service parameters with optional tradeSide
+	// Set up service parameters with optional holdSide
 	service.Symbol("ETHUSDT").
 		ProductType(futures.ProductTypeUSDTFutures).
 		MarginCoin("USDT").
 		Leverage("20").
-		TradeSide("short")
+		HoldSide("short")
 
 	// Mock the API call
 	mockClient.On("CallAPI",
@@ -113,7 +113,7 @@ func TestSetLeverageService_Do_Success_WithTradeSide(t *testing.T) {
 				requestBody["productType"] == "USDT-FUTURES" &&
 				requestBody["marginCoin"] == "USDT" &&
 				requestBody["leverage"] == "20" &&
-				requestBody["tradeSide"] == "short"
+				requestBody["holdSide"] == "short"
 		}),
 		true).Return(mockApiResponse, &fasthttp.ResponseHeader{}, nil)
 
@@ -371,14 +371,14 @@ func TestSetLeverageService_Integration(t *testing.T) {
 		ProductType(futures.ProductTypeUSDTFutures).
 		MarginCoin("USDT").
 		Leverage("10").
-		TradeSide("long")
+		HoldSide("long")
 
 	assert.Equal(t, service, result)
 	assert.Equal(t, "BTCUSDT", service.symbol)
 	assert.Equal(t, futures.ProductTypeUSDTFutures, service.productType)
 	assert.Equal(t, "USDT", service.marginCoin)
 	assert.Equal(t, "10", service.leverage)
-	assert.Equal(t, "long", service.tradeSide)
+	assert.Equal(t, "long", service.holdSide)
 }
 
 func TestSetLeverageService_checkRequiredParams(t *testing.T) {
@@ -460,7 +460,7 @@ func TestSetLeverageService_setLeverageRequestBody(t *testing.T) {
 		ProductType(futures.ProductTypeUSDTFutures).
 		MarginCoin("USDT").
 		Leverage("10").
-		TradeSide("long")
+		HoldSide("long")
 
 	body := service.setLeverageRequestBody()
 
@@ -469,16 +469,16 @@ func TestSetLeverageService_setLeverageRequestBody(t *testing.T) {
 		"productType": "USDT-FUTURES",
 		"marginCoin":  "USDT",
 		"leverage":    "10",
-		"tradeSide":   "long",
+		"holdSide":   "long",
 	}
 
 	assert.Equal(t, expected, body)
 }
 
-func TestSetLeverageService_setLeverageRequestBody_WithoutTradeSide(t *testing.T) {
+func TestSetLeverageService_setLeverageRequestBody_WithoutHoldSide(t *testing.T) {
 	service := &SetLeverageService{}
 
-	// Test without optional tradeSide
+	// Test without optional holdSide
 	service.Symbol("ETHUSDT").
 		ProductType(futures.ProductTypeCOINFutures).
 		MarginCoin("ETH").
@@ -495,9 +495,9 @@ func TestSetLeverageService_setLeverageRequestBody_WithoutTradeSide(t *testing.T
 
 	assert.Equal(t, expected, body)
 
-	// Ensure tradeSide is not included when empty
-	_, exists := body["tradeSide"]
-	assert.False(t, exists, "tradeSide should not be included when empty")
+	// Ensure holdSide is not included when empty
+	_, exists := body["holdSide"]
+	assert.False(t, exists, "holdSide should not be included when empty")
 }
 
 // Benchmark tests
@@ -539,7 +539,7 @@ func BenchmarkSetLeverageService_setLeverageRequestBody(b *testing.B) {
 		ProductType(futures.ProductTypeUSDTFutures).
 		MarginCoin("USDT").
 		Leverage("10").
-		TradeSide("long")
+		HoldSide("long")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

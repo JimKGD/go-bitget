@@ -64,8 +64,7 @@ func (c *BaseWsClient) SubscribeTicker(symbol, productType string, handler OnRec
 		Channel:     ChannelTicker,
 		Symbol:      symbol,
 	}
-
-	c.subscriptions[args] = handler
+	c.setSubscription(args, handler)
 	c.subscribe(args)
 }
 
@@ -92,7 +91,7 @@ func (c *BaseWsClient) SubscribeCandles(symbol, productType, timeframe string, h
 		Symbol:      symbol,
 	}
 
-	c.subscriptions[args] = handler
+	c.setSubscription(args, handler)
 	c.subscribe(args)
 }
 
@@ -116,7 +115,7 @@ func (c *BaseWsClient) SubscribeOrderBook(symbol, productType string, handler On
 		Symbol:      symbol,
 	}
 
-	c.subscriptions[args] = handler
+	c.setSubscription(args, handler)
 	c.subscribe(args)
 }
 
@@ -140,7 +139,7 @@ func (c *BaseWsClient) SubscribeOrderBook5(symbol, productType string, handler O
 		Symbol:      symbol,
 	}
 
-	c.subscriptions[args] = handler
+	c.setSubscription(args, handler)
 	c.subscribe(args)
 }
 
@@ -164,7 +163,7 @@ func (c *BaseWsClient) SubscribeOrderBook15(symbol, productType string, handler 
 		Symbol:      symbol,
 	}
 
-	c.subscriptions[args] = handler
+	c.setSubscription(args, handler)
 	c.subscribe(args)
 }
 
@@ -188,7 +187,7 @@ func (c *BaseWsClient) SubscribeTrades(symbol, productType string, handler OnRec
 		Symbol:      symbol,
 	}
 
-	c.subscriptions[args] = handler
+	c.setSubscription(args, handler)
 	c.subscribe(args)
 }
 
@@ -206,15 +205,13 @@ func (c *BaseWsClient) SubscribeTrades(symbol, productType string, handler OnRec
 //	    fmt.Println("Mark price update:", message)
 //	})
 func (c *BaseWsClient) SubscribeMarkPrice(symbol, productType string, handler OnReceive) {
-	// Note: Bitget doesn't have a dedicated "mark-price" channel
-	// Mark price data is available through the ticker channel
 	args := SubscriptionArgs{
 		ProductType: productType,
-		Channel:     ChannelTicker,
+		Channel:     ChannelMarkPrice,
 		Symbol:      symbol,
 	}
 
-	c.subscriptions[args] = handler
+	c.setSubscription(args, handler)
 	c.subscribe(args)
 }
 
@@ -238,7 +235,7 @@ func (c *BaseWsClient) SubscribeFundingTime(symbol, productType string, handler 
 		Symbol:      symbol,
 	}
 
-	c.subscriptions[args] = handler
+	c.setSubscription(args, handler)
 	c.subscribe(args)
 }
 
@@ -260,7 +257,7 @@ func (c *BaseWsClient) Unsubscribe(channel, symbol, productType string) {
 		Symbol:      symbol,
 	}
 
-	delete(c.subscriptions, args)
+	c.deleteSubscription(args)
 	c.unsubscribe(args)
 }
 
@@ -334,7 +331,9 @@ func (c *BaseWsClient) unsubscribe(args SubscriptionArgs) {
 // GetActiveSubscriptions returns a copy of all active subscriptions
 // Returns a map of subscription arguments to their handlers
 func (c *BaseWsClient) GetActiveSubscriptions() map[SubscriptionArgs]OnReceive {
-	subscriptions := make(map[SubscriptionArgs]OnReceive)
+	c.subsMu.RLock()
+	defer c.subsMu.RUnlock()
+	subscriptions := make(map[SubscriptionArgs]OnReceive, len(c.subscriptions))
 	for k, v := range c.subscriptions {
 		subscriptions[k] = v
 	}
@@ -349,7 +348,9 @@ func (c *BaseWsClient) IsSubscribed(channel, symbol, productType string) bool {
 		Symbol:      symbol,
 	}
 
+	c.subsMu.RLock()
 	_, exists := c.subscriptions[args]
+	c.subsMu.RUnlock()
 	return exists
 }
 
@@ -380,7 +381,7 @@ func (c *BaseWsClient) SubscribeOrders(productType string, handler OnReceive) {
 		Channel:     ChannelOrders,
 	}
 
-	c.subscriptions[args] = handler
+	c.setSubscription(args, handler)
 	c.subscribe(args)
 }
 
@@ -404,7 +405,7 @@ func (c *BaseWsClient) SubscribeFills(symbol string, productType string, handler
 		Symbol:      symbol,
 	}
 
-	c.subscriptions[args] = handler
+	c.setSubscription(args, handler)
 	c.subscribe(args)
 }
 
@@ -428,7 +429,7 @@ func (c *BaseWsClient) SubscribePositions(productType string, handler OnReceive)
 		Symbol:      "default",
 	}
 
-	c.subscriptions[args] = handler
+	c.setSubscription(args, handler)
 	c.subscribe(args)
 }
 
@@ -452,7 +453,7 @@ func (c *BaseWsClient) SubscribeAccount(coin string, productType string, handler
 		Coin:        coin,
 	}
 
-	c.subscriptions[args] = handler
+	c.setSubscription(args, handler)
 	c.subscribe(args)
 }
 
@@ -475,7 +476,7 @@ func (c *BaseWsClient) SubscribePlanOrders(productType string, handler OnReceive
 		Channel:     ChannelPlanOrder,
 	}
 
-	c.subscriptions[args] = handler
+	c.setSubscription(args, handler)
 	c.subscribe(args)
 }
 
@@ -494,8 +495,9 @@ func (c *BaseWsClient) UnsubscribeFills(productType string) {
 }
 
 // UnsubscribePositions removes position updates subscription for a specific product type.
+// Mirrors SubscribePositions which uses the "default" symbol convention.
 func (c *BaseWsClient) UnsubscribePositions(productType string) {
-	c.Unsubscribe(ChannelPositions, "", productType)
+	c.Unsubscribe(ChannelPositions, "default", productType)
 }
 
 // UnsubscribeAccount removes account updates subscription for a specific product type.

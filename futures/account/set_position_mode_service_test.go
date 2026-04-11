@@ -29,7 +29,7 @@ func TestSetPositionModeService_FluentAPI(t *testing.T) {
 func TestSetPositionModeService_Do_Success_OneWay(t *testing.T) {
 	mockPositionModeData := map[string]interface{}{
 		"productType":  "USDT-FUTURES",
-		"positionMode": "one_way",
+		"posMode": "one_way_mode",
 	}
 
 	mockDataBytes, _ := json.Marshal(mockPositionModeData)
@@ -48,7 +48,7 @@ func TestSetPositionModeService_Do_Success_OneWay(t *testing.T) {
 
 	expectedBody := map[string]interface{}{
 		"productType":  "USDT-FUTURES",
-		"positionMode": "one_way",
+		"posMode": "one_way_mode",
 	}
 	expectedBodyBytes, _ := json.Marshal(expectedBody)
 
@@ -66,14 +66,14 @@ func TestSetPositionModeService_Do_Success_OneWay(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "USDT-FUTURES", result.ProductType)
-	assert.Equal(t, "one_way", result.PositionMode)
+	assert.Equal(t, "one_way_mode", result.PositionMode)
 	mockClient.AssertExpectations(t)
 }
 
 func TestSetPositionModeService_Do_Success_Hedge(t *testing.T) {
 	mockPositionModeData := map[string]interface{}{
 		"productType":  "USDT-FUTURES",
-		"positionMode": "hedge",
+		"posMode": "hedge",
 	}
 
 	mockDataBytes, _ := json.Marshal(mockPositionModeData)
@@ -92,7 +92,7 @@ func TestSetPositionModeService_Do_Success_Hedge(t *testing.T) {
 
 	expectedBody := map[string]interface{}{
 		"productType":  "USDT-FUTURES",
-		"positionMode": "hedge",
+		"posMode": "hedge",
 	}
 	expectedBodyBytes, _ := json.Marshal(expectedBody)
 
@@ -117,7 +117,7 @@ func TestSetPositionModeService_Do_Success_Hedge(t *testing.T) {
 func TestSetPositionModeService_Do_CoinFutures(t *testing.T) {
 	mockPositionModeData := map[string]interface{}{
 		"productType":  "COIN-FUTURES",
-		"positionMode": "one_way",
+		"posMode": "one_way_mode",
 	}
 
 	mockDataBytes, _ := json.Marshal(mockPositionModeData)
@@ -136,7 +136,7 @@ func TestSetPositionModeService_Do_CoinFutures(t *testing.T) {
 
 	expectedBody := map[string]interface{}{
 		"productType":  "COIN-FUTURES",
-		"positionMode": "one_way",
+		"posMode": "one_way_mode",
 	}
 	expectedBodyBytes, _ := json.Marshal(expectedBody)
 
@@ -154,14 +154,14 @@ func TestSetPositionModeService_Do_CoinFutures(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "COIN-FUTURES", result.ProductType)
-	assert.Equal(t, "one_way", result.PositionMode)
+	assert.Equal(t, "one_way_mode", result.PositionMode)
 	mockClient.AssertExpectations(t)
 }
 
 func TestSetPositionModeService_Do_USDCFutures(t *testing.T) {
 	mockPositionModeData := map[string]interface{}{
 		"productType":  "USDC-FUTURES",
-		"positionMode": "hedge",
+		"posMode": "hedge",
 	}
 
 	mockDataBytes, _ := json.Marshal(mockPositionModeData)
@@ -180,7 +180,7 @@ func TestSetPositionModeService_Do_USDCFutures(t *testing.T) {
 
 	expectedBody := map[string]interface{}{
 		"productType":  "USDC-FUTURES",
-		"positionMode": "hedge",
+		"posMode": "hedge",
 	}
 	expectedBodyBytes, _ := json.Marshal(expectedBody)
 
@@ -248,7 +248,7 @@ func TestSetPositionModeService_Do_UnmarshalError(t *testing.T) {
 }
 
 func TestSetPositionModeService_PositionModeConstants(t *testing.T) {
-	assert.Equal(t, futures.PositionModeType("one_way"), futures.PositionModeOneWay)
+	assert.Equal(t, futures.PositionModeType("one_way_mode"), futures.PositionModeOneWay)
 	assert.Equal(t, futures.PositionModeType("hedge"), futures.PositionModeHedge)
 }
 

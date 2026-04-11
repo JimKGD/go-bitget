@@ -73,20 +73,120 @@ func (c *Client) SetDemoTrading(demoTrading bool) *Client {
 	return c
 }
 
-// CallAPI makes an API call to the UTA API
+// Retry configuration for rate-limit / transient failures.
+const (
+	utaMaxRetries       = 3
+	utaInitialBackoff   = 500 * time.Millisecond
+	utaMaxBackoff       = 10 * time.Second
+	utaRequestTimeout   = 30 * time.Second
+)
+
+// CallAPI makes an API call to the UTA API.
+// It automatically retries on HTTP 429 (rate limited) with exponential backoff
+// and respects context cancellation.
 func (c *Client) CallAPI(ctx context.Context, method string, endpoint string, queryParams url.Values, body []byte, sign bool) (*ApiResponse, *fasthttp.ResponseHeader, error) {
-	// Build URL
+	// Build URL once — does not change between retries.
 	fullURL := c.BaseURL + endpoint
-	if queryParams != nil && len(queryParams) > 0 {
+	if len(queryParams) > 0 {
 		fullURL += "?" + queryParams.Encode()
 	}
 
-	// Create request
+	c.Logger.Debug().
+		Str("method", method).
+		Str("url", fullURL).
+		Int("body_bytes", len(body)).
+		Bool("signed", sign).
+		Msg("Making UTA API request")
+
+	backoff := utaInitialBackoff
+	for attempt := 0; attempt < utaMaxRetries; attempt++ {
+		resp, err := c.doRequest(ctx, method, fullURL, endpoint, queryParams, body, sign)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		statusCode := resp.StatusCode()
+		// Rate-limit / server-side retryable failures → backoff and retry.
+		if statusCode == fasthttp.StatusTooManyRequests ||
+			statusCode == fasthttp.StatusServiceUnavailable ||
+			statusCode == fasthttp.StatusGatewayTimeout {
+			responseBody := string(resp.Body())
+			fasthttp.ReleaseResponse(resp)
+
+			if attempt == utaMaxRetries-1 {
+				return nil, nil, fmt.Errorf("API request failed with status %d after %d retries: %s", statusCode, utaMaxRetries, responseBody)
+			}
+
+			c.Logger.Warn().
+				Int("status_code", statusCode).
+				Int("attempt", attempt+1).
+				Dur("backoff", backoff).
+				Msg("Rate-limited or transient failure, retrying")
+
+			select {
+			case <-ctx.Done():
+				return nil, nil, ctx.Err()
+			case <-time.After(backoff):
+			}
+			backoff *= 2
+			if backoff > utaMaxBackoff {
+				backoff = utaMaxBackoff
+			}
+			continue
+		}
+
+		// Any other non-200 → terminal error.
+		if statusCode != fasthttp.StatusOK {
+			responseBody := string(resp.Body())
+			fasthttp.ReleaseResponse(resp)
+			c.Logger.Error().
+				Int("status_code", statusCode).
+				Msg("API request failed with non-200 status")
+			return nil, nil, fmt.Errorf("API request failed with status %d: %s", statusCode, responseBody)
+		}
+
+		// Parse response body.
+		var apiResp ApiResponse
+		if err := c.json.Unmarshal(resp.Body(), &apiResp); err != nil {
+			fasthttp.ReleaseResponse(resp)
+			c.Logger.Error().Err(err).Msg("Failed to unmarshal API response")
+			return nil, nil, fmt.Errorf("failed to unmarshal response: %w", err)
+		}
+
+		// Copy header so the caller keeps access after we release the response.
+		headerCopy := &fasthttp.ResponseHeader{}
+		resp.Header.CopyTo(headerCopy)
+		fasthttp.ReleaseResponse(resp)
+
+		c.Logger.Debug().
+			Str("code", apiResp.Code).
+			Int64("request_time", apiResp.RequestTime).
+			Msg("Received UTA API response")
+
+		if apiResp.Code != "00000" {
+			apiError := &common.APIError{
+				Code:    apiResp.Code,
+				Message: apiResp.Msg,
+			}
+			c.Logger.Error().
+				Str("error_code", apiError.Code).
+				Msg("API returned error")
+			return &apiResp, headerCopy, apiError
+		}
+
+		return &apiResp, headerCopy, nil
+	}
+
+	return nil, nil, fmt.Errorf("max retries exceeded")
+}
+
+// doRequest performs a single HTTP request attempt.
+// Returns a *fasthttp.Response that the caller must ReleaseResponse after use.
+func (c *Client) doRequest(ctx context.Context, method, fullURL, endpoint string, queryParams url.Values, body []byte, sign bool) (*fasthttp.Response, error) {
 	req := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(req)
 
 	resp := fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseResponse(resp)
 
 	req.SetRequestURI(fullURL)
 	req.Header.SetMethod(method)
@@ -97,92 +197,48 @@ func (c *Client) CallAPI(ctx context.Context, method string, endpoint string, qu
 		req.SetBody(body)
 	}
 
-	// Add authentication headers if required
 	if sign {
 		timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
 
-		// Build signature string
 		var signString strings.Builder
 		signString.WriteString(timestamp)
 		signString.WriteString(method)
 		signString.WriteString(endpoint)
-		if queryParams != nil && len(queryParams) > 0 {
+		if len(queryParams) > 0 {
 			signString.WriteString("?")
 			signString.WriteString(queryParams.Encode())
 		}
 		if body != nil {
-			signString.WriteString(string(body))
+			signString.Write(body)
 		}
 
-		// Create signature
 		signature := c.createSignature(signString.String())
 
-		// Set headers
 		req.Header.Set("ACCESS-KEY", c.APIKey)
 		req.Header.Set("ACCESS-SIGN", signature)
 		req.Header.Set("ACCESS-TIMESTAMP", timestamp)
 		req.Header.Set("ACCESS-PASSPHRASE", c.Passphrase)
 	}
 
-	// Add demo trading header if enabled
 	if c.DemoTrading {
 		req.Header.Set("paptrading", "1")
 	}
 
-	c.Logger.Debug().
-		Str("method", method).
-		Str("url", fullURL).
-		Str("body", string(body)).
-		Bool("signed", sign).
-		Msg("Making UTA API request")
-
-	// Make request with context
-	err := c.HTTPClient.DoTimeout(req, resp, 30*time.Second)
-	if err != nil {
-		c.Logger.Error().Err(err).Msg("HTTP request failed")
-		return nil, nil, fmt.Errorf("HTTP request failed: %w", err)
-	}
-
-	// Check status code
-	statusCode := resp.StatusCode()
-	if statusCode != fasthttp.StatusOK {
-		c.Logger.Error().
-			Int("status_code", statusCode).
-			Str("response", string(resp.Body())).
-			Msg("API request failed with non-200 status")
-		return nil, nil, fmt.Errorf("API request failed with status %d: %s", statusCode, string(resp.Body()))
-	}
-
-	// Parse response
-	var apiResp ApiResponse
-	if err := c.json.Unmarshal(resp.Body(), &apiResp); err != nil {
-		c.Logger.Error().
-			Err(err).
-			Str("response_body", string(resp.Body())).
-			Msg("Failed to unmarshal API response")
-		return nil, nil, fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	c.Logger.Debug().
-		Str("code", apiResp.Code).
-		Str("msg", apiResp.Msg).
-		Int64("request_time", apiResp.RequestTime).
-		Msg("Received UTA API response")
-
-	// Check for API errors
-	if apiResp.Code != "00000" {
-		apiError := &common.APIError{
-			Code:    apiResp.Code,
-			Message: apiResp.Msg,
+	// Respect context deadline where possible.
+	timeout := utaRequestTimeout
+	if deadline, ok := ctx.Deadline(); ok {
+		if remaining := time.Until(deadline); remaining < timeout && remaining > 0 {
+			timeout = remaining
 		}
-		c.Logger.Error().
-			Str("error_code", apiError.Code).
-			Str("error_message", apiError.Message).
-			Msg("API returned error")
-		return &apiResp, &resp.Header, apiError
 	}
 
-	return &apiResp, &resp.Header, nil
+	if err := c.HTTPClient.DoTimeout(req, resp, timeout); err != nil {
+		fasthttp.ReleaseResponse(resp)
+		c.Logger.Error().Err(err).Msg("HTTP request failed")
+		return nil, fmt.Errorf("HTTP request failed: %w", err)
+	}
+
+	return resp, nil
 }
 
 // createSignature creates HMAC SHA256 signature for request authentication

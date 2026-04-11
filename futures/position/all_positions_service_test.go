@@ -34,13 +34,13 @@ func TestAllPositionsService_Do_Success(t *testing.T) {
 			"marginCoin":             "USDT",
 			"symbol":                 "BTCUSDT",
 			"holdSide":               "long",
-			"size":                   "0.001",
+			"total":                  "0.001",
+			"openDelegateSize":       "0",
+			"marginSize":             "25.00",
 			"markPrice":              "50000.00",
-			"positionValue":          "50.00",
-			"averageOpenPrice":       "49000.00",
+			"openPriceAvg":           "49000.00",
 			"unrealizedPL":           "1.00",
 			"unrealizedPLR":          "0.02",
-			"margin":                 "25.00",
 			"available":              "0.001",
 			"crossedLeverage":        "2.0",
 			"isolatedLeverage":       "0.0",
@@ -101,7 +101,7 @@ func TestAllPositionsService_Do_Success(t *testing.T) {
 	assert.Equal(t, "USDT", pos.MarginCoin)
 	assert.Equal(t, "BTCUSDT", pos.Symbol)
 	assert.Equal(t, futures.HoldSideLong, pos.HoldSide)
-	assert.Equal(t, 0.001, pos.Size)
+	assert.Equal(t, 0.001, pos.Total)
 	assert.Equal(t, 50000.0, pos.MarkPrice)
 
 	mockClient.AssertExpectations(t)

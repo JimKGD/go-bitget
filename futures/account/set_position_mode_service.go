@@ -31,8 +31,8 @@ func (s *SetPositionModeService) PositionMode(positionMode futures.PositionModeT
 
 // SetPositionModeResponse represents the response from setting position mode.
 type SetPositionModeResponse struct {
-	ProductType  string `json:"productType"`  // Product type
-	PositionMode string `json:"positionMode"` // New position mode
+	ProductType  string `json:"productType"` // Product type
+	PositionMode string `json:"posMode"`     // New position mode
 }
 
 // Do executes the set position mode request.

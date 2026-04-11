@@ -578,21 +578,13 @@ func TestAccount_UnmarshalJSON_InvalidStringTypeAssertion(t *testing.T) {
 	}`
 
 	var account Account
-
-	// This should panic due to type assertion, so we catch it
-	defer func() {
-		if r := recover(); r != nil {
-			// Expected panic due to type assertion
-			assert.Contains(t, fmt.Sprintf("%v", r), "interface conversion")
-		}
-	}()
-
 	err := json.Unmarshal([]byte(jsonData), &account)
 
-	// If we reach here without panic, the test should fail
-	if err == nil {
-		t.Error("Expected panic or error, but got nil")
-	}
+	// SafeStringCast converts non-strings into empty strings rather than panicking,
+	// so unmarshal should succeed and marginCoin should be empty.
+	assert.NoError(t, err)
+	assert.Equal(t, "", account.MarginCoin)
+	assert.Equal(t, 100.50, account.Locked)
 }
 
 // Benchmark tests

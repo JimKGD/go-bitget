@@ -91,7 +91,7 @@ func TestPlaceOrderService_Do_Success(t *testing.T) {
 		"category":  CategoryUSDTFutures,
 		"side":      SideBuy,
 		"orderType": OrderTypeLimit,
-		"size":      "0.001",
+		"qty":       "0.001",
 		"price":     "50000",
 		"clientOid": "test_client_oid",
 	}
@@ -102,7 +102,7 @@ func TestPlaceOrderService_Do_Success(t *testing.T) {
 		mock.Anything,
 		"POST",
 		EndpointTradePlaceOrder,
-		(*url.Values)(nil),
+		url.Values(nil),
 		expectedBodyBytes,
 		true).Return(mockResponse, &fasthttp.ResponseHeader{}, nil)
 
@@ -210,13 +210,13 @@ func TestPlaceOrderService_Do_WithOptionalParameters(t *testing.T) {
 		"category":     CategoryUSDTFutures,
 		"side":         SideBuy,
 		"orderType":    OrderTypeLimit,
-		"size":         "0.001",
+		"qty":          "0.001",
 		"price":        "50000",
-		"clientOid":    "test_client_oid",
-		"timeInForce":  TimeInForceGTC,
-		"reduceOnly":   "false",
-		"positionSide": PositionSideLong,
-		"stp":          STPNone,
+		"clientOid":   "test_client_oid",
+		"timeInForce": TimeInForceGTC,
+		"reduceOnly":  "false",
+		"posSide":     PositionSideLong,
+		"stp":         STPNone,
 	}
 	expectedBodyBytes, _ := json.Marshal(expectedBody)
 
@@ -225,7 +225,7 @@ func TestPlaceOrderService_Do_WithOptionalParameters(t *testing.T) {
 		mock.Anything,
 		"POST",
 		EndpointTradePlaceOrder,
-		(*url.Values)(nil),
+		url.Values(nil),
 		expectedBodyBytes,
 		true).Return(mockResponse, &fasthttp.ResponseHeader{}, nil)
 
@@ -279,7 +279,7 @@ func TestPlaceOrderService_Do_MarketOrder(t *testing.T) {
 		"category":  CategoryUSDTFutures,
 		"side":      SideBuy,
 		"orderType": OrderTypeMarket,
-		"size":      "0.001",
+		"qty":       "0.001",
 	}
 	expectedBodyBytes, _ := json.Marshal(expectedBody)
 
@@ -287,7 +287,7 @@ func TestPlaceOrderService_Do_MarketOrder(t *testing.T) {
 		mock.Anything,
 		"POST",
 		EndpointTradePlaceOrder,
-		(*url.Values)(nil),
+		url.Values(nil),
 		expectedBodyBytes,
 		true).Return(mockResponse, &fasthttp.ResponseHeader{}, nil)
 

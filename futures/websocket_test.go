@@ -74,8 +74,8 @@ func (m *MockBaseWsClient) SubscribeOrders(productType string, handler ws.OnRece
 	m.subscriptions["orders"] = true
 }
 
-func (m *MockBaseWsClient) SubscribeFills(productType string, handler ws.OnReceive) {
-	m.Called(productType, handler)
+func (m *MockBaseWsClient) SubscribeFills(symbol, productType string, handler ws.OnReceive) {
+	m.Called(symbol, productType, handler)
 	m.subscriptCount++
 	m.subscriptions["fills"] = true
 }
@@ -86,8 +86,8 @@ func (m *MockBaseWsClient) SubscribePositions(productType string, handler ws.OnR
 	m.subscriptions["positions"] = true
 }
 
-func (m *MockBaseWsClient) SubscribeAccount(productType string, handler ws.OnReceive) {
-	m.Called(productType, handler)
+func (m *MockBaseWsClient) SubscribeAccount(coin, productType string, handler ws.OnReceive) {
+	m.Called(coin, productType, handler)
 	m.subscriptCount++
 	m.subscriptions["account"] = true
 }
@@ -344,7 +344,7 @@ func TestWebSocketManager_SubscribeToFills(t *testing.T) {
 
 	handler := func(message string) {}
 
-	mockClient.On("SubscribeFills", string(ProductTypeUSDTFutures), mock.Anything).Return()
+	mockClient.On("SubscribeFills", "default", string(ProductTypeUSDTFutures), mock.Anything).Return()
 
 	err := wsManager.SubscribeToFills(handler)
 
@@ -378,7 +378,7 @@ func TestWebSocketManager_SubscribeToAccount(t *testing.T) {
 
 	handler := func(message string) {}
 
-	mockClient.On("SubscribeAccount", string(ProductTypeUSDTFutures), mock.Anything).Return()
+	mockClient.On("SubscribeAccount", "default", string(ProductTypeUSDTFutures), mock.Anything).Return()
 
 	err := wsManager.SubscribeToAccount(handler)
 
