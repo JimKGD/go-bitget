@@ -64,19 +64,19 @@ type BaseWsClient struct {
 	subscribeRequests *types.Set
 
 	// Connection state (guarded by stateMu)
-	stateMu              sync.Mutex
-	needLogin            bool
-	connected            bool
-	loginStatus          bool
-	webSocketClient      *websocket.Conn
-	lastReceivedTime     time.Time
-	connectionStartTime  time.Time
-	reconnecting         bool
-	reconnectAttempts    int
-	storedLoginCreds     *loginCredentials
+	stateMu               sync.Mutex
+	needLogin             bool
+	connected             bool
+	loginStatus           bool
+	webSocketClient       *websocket.Conn
+	lastReceivedTime      time.Time
+	connectionStartTime   time.Time
+	reconnecting          bool
+	reconnectAttempts     int
+	storedLoginCreds      *loginCredentials
 	checkConnectionTicker *time.Ticker
-	reconnectionTimeout  time.Duration
-	maxReconnectAttempts int
+	reconnectionTimeout   time.Duration
+	maxReconnectAttempts  int
 
 	// Message send coordination
 	sendMutex   *sync.Mutex
@@ -600,17 +600,26 @@ func (c *BaseWsClient) ReadLoop() {
 	}
 }
 
+// getSubscriptionArg returns the string representation of a subscription argument.
+func getSubscriptionArg(v any) string {
+	if v == nil {
+		return ""
+	}
+	return fmt.Sprintf("%v", v)
+}
+
 // getListener returns the handler registered for a subscription, or the default listener.
-func (c *BaseWsClient) getListener(argJson interface{}) OnReceive {
-	mapData, ok := argJson.(map[string]interface{})
+func (c *BaseWsClient) getListener(argJson any) OnReceive {
+	mapData, ok := argJson.(map[string]any)
 	if !ok {
 		return c.listener
 	}
 
 	subscribeReq := SubscriptionArgs{
-		ProductType: fmt.Sprintf("%v", mapData["instType"]),
-		Channel:     fmt.Sprintf("%v", mapData["channel"]),
-		Symbol:      fmt.Sprintf("%v", mapData["instId"]),
+		ProductType: getSubscriptionArg(mapData["instType"]),
+		Channel:     getSubscriptionArg(mapData["channel"]),
+		Symbol:      getSubscriptionArg(mapData["instId"]),
+		Coin:        getSubscriptionArg(mapData["coin"]),
 	}
 
 	c.subsMu.RLock()
