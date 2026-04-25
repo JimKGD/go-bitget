@@ -267,6 +267,57 @@ type StrategyOrder struct {
 	UpdatedTime  string `json:"updatedTime"`
 }
 
+// Market structures
+
+// Instrument represents specifications for trading pair
+type Instrument struct {
+	Symbol              string `json:"symbol"`
+	Category            string `json:"category"`
+	BaseCoin            string `json:"baseCoin"`
+	QuoteCoin           string `json:"quoteCoin"`
+	BuyLimitPriceRatio  string `json:"buyLimitPriceRatio"`
+	SellLimitPriceRatio string `json:"sellLimitPriceRatio"`
+	MinOrderQty         string `json:"minOrderQty"`
+	MaxOrderQty         string `json:"maxOrderQty"`
+	PricePrecision      string `json:"pricePrecision"`
+	QuantityPrecision   string `json:"quantityPrecision"`
+	QuotePrecision      string `json:"quotePrecision,omitempty"`
+	MinOrderAmount      string `json:"minOrderAmount"`
+	MaxSymbolOrderNum   string `json:"maxSymbolOrderNum,omitempty"`
+	MaxProductOrderNum  string `json:"maxProductOrderNum"`
+	MaxPositionNum      string `json:"maxPositionNum"`
+	Status              string `json:"status"`
+	MaintainTime        string `json:"maintainTime,omitempty"`
+	SymbolType          string `json:"symbolType"`
+	// Future category
+	IsRwa              string `json:"isRwa,omitempty"`
+	FeeRateUpRatio     string `json:"feeRateUpRatio,omitempty"`
+	MakerFeeRate       string `json:"makerFeeRate,omitempty"`
+	TakerFeeRate       string `json:"takerFeeRate,omitempty"`
+	OpenCostUpRatio    string `json:"openCostUpRatio,omitempty"`
+	PriceMultiplier    string `json:"priceMultiplier,omitempty"`
+	QuantityMultiplier string `json:"quantityMultiplier,omitempty"`
+	Type               string `json:"type,omitempty"`
+	OffTime            string `json:"offTime,omitempty"`
+	LimitOpenTime      string `json:"limitOpenTime,omitempty"`
+	DeliveryTime       string `json:"deliveryTime,omitempty"`
+	DeliveryStartTime  string `json:"deliveryStartTime,omitempty"`
+	DeliveryPeriod     string `json:"deliveryPeriod,omitempty"`
+	FundInterval       string `json:"fundInterval,omitempty"`
+	MinLeverage        string `json:"minLeverage,omitempty"`
+	MaxLeverage        string `json:"maxLeverage,omitempty"`
+	MaxMarketOrderQty  string `json:"maxMarketOrderQty,omitempty"`
+	// Margin category
+	IsIsolatedBaseBorrowable   string `json:"isIsolatedBaseBorrowable,omitempty"`
+	IsIsolatedQuotedBorrowable string `json:"isIsolatedQuotedBorrowable,omitempty"`
+	WarningRiskRatio           string `json:"warningRiskRatio,omitempty"`
+	LiquidationRiskRatio       string `json:"liquidationRiskRatio,omitempty"`
+	MaxCrossedLeverage         string `json:"maxCrossedLeverage,omitempty"`
+	MaxIsolatedLeverage        string `json:"maxIsolatedLeverage,omitempty"`
+	UserMinBorrow              string `json:"userMinBorrow,omitempty"`
+	AreaSymbol                 string `json:"areaSymbol,omitempty"`
+}
+
 // Market data structures
 
 // Ticker represents ticker information

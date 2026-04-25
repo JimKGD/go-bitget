@@ -294,12 +294,6 @@ func (s *GetFundingRateHistoryService) Do(ctx context.Context) (interface{}, err
 	return nil, ErrNotImplemented
 }
 
-type GetInstrumentsService struct{ c ClientInterface }
-
-func (s *GetInstrumentsService) Do(ctx context.Context) (interface{}, error) {
-	return nil, ErrNotImplemented
-}
-
 type GetDiscountRateService struct{ c ClientInterface }
 
 func (s *GetDiscountRateService) Do(ctx context.Context) (interface{}, error) {
