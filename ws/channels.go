@@ -5,6 +5,7 @@ package ws
 
 import (
 	"fmt"
+
 	"github.com/khanbekov/go-bitget/common"
 )
 
@@ -379,6 +380,7 @@ func (c *BaseWsClient) SubscribeOrders(productType string, handler OnReceive) {
 	args := SubscriptionArgs{
 		ProductType: productType,
 		Channel:     ChannelOrders,
+		Symbol:      "default",
 	}
 
 	c.setSubscription(args, handler)
@@ -486,12 +488,12 @@ func (c *BaseWsClient) SubscribePlanOrders(productType string, handler OnReceive
 
 // UnsubscribeOrders removes order updates subscription for a specific product type.
 func (c *BaseWsClient) UnsubscribeOrders(productType string) {
-	c.Unsubscribe(ChannelOrders, "", productType)
+	c.Unsubscribe(ChannelOrders, "default", productType)
 }
 
 // UnsubscribeFills removes fill updates subscription for a specific product type.
 func (c *BaseWsClient) UnsubscribeFills(productType string) {
-	c.Unsubscribe(ChannelFill, "", productType)
+	c.Unsubscribe(ChannelFill, "default", productType)
 }
 
 // UnsubscribePositions removes position updates subscription for a specific product type.

@@ -407,7 +407,7 @@ func TestSubscribeOrders(t *testing.T) {
 
 	client.SubscribeOrders("USDT-FUTURES", handler)
 
-	assert.True(t, client.IsSubscribed(ChannelOrders, "", "USDT-FUTURES"))
+	assert.True(t, client.IsSubscribed(ChannelOrders, "default", "USDT-FUTURES"))
 	assert.Equal(t, 1, client.GetSubscriptionCount())
 }
 
@@ -416,9 +416,9 @@ func TestSubscribeFills(t *testing.T) {
 
 	handler := func(message string) {}
 
-	client.SubscribeFills("", "COIN-FUTURES", handler)
+	client.SubscribeFills("default", "COIN-FUTURES", handler)
 
-	assert.True(t, client.IsSubscribed(ChannelFill, "", "COIN-FUTURES"))
+	assert.True(t, client.IsSubscribed(ChannelFill, "default", "COIN-FUTURES"))
 	assert.Equal(t, 1, client.GetSubscriptionCount())
 }
 
@@ -462,7 +462,7 @@ func TestPrivateChannelUnsubscribeMethods(t *testing.T) {
 
 	// Add subscriptions for all private channel types
 	client.SubscribeOrders("USDT-FUTURES", handler)
-	client.SubscribeFills("", "USDT-FUTURES", handler)
+	client.SubscribeFills("default", "USDT-FUTURES", handler)
 	client.SubscribePositions("USDT-FUTURES", handler)
 	client.SubscribeAccount("", "USDT-FUTURES", handler)
 	client.SubscribePlanOrders("USDT-FUTURES", handler)
@@ -473,11 +473,11 @@ func TestPrivateChannelUnsubscribeMethods(t *testing.T) {
 	// Test all specific unsubscribe methods for private channels
 	client.UnsubscribeOrders("USDT-FUTURES")
 	assert.Equal(t, initialCount-1, client.GetSubscriptionCount())
-	assert.False(t, client.IsSubscribed(ChannelOrders, "", "USDT-FUTURES"))
+	assert.False(t, client.IsSubscribed(ChannelOrders, "default", "USDT-FUTURES"))
 
 	client.UnsubscribeFills("USDT-FUTURES")
 	assert.Equal(t, initialCount-2, client.GetSubscriptionCount())
-	assert.False(t, client.IsSubscribed(ChannelFill, "", "USDT-FUTURES"))
+	assert.False(t, client.IsSubscribed(ChannelFill, "default", "USDT-FUTURES"))
 
 	client.UnsubscribePositions("USDT-FUTURES")
 	assert.Equal(t, initialCount-3, client.GetSubscriptionCount())
@@ -500,16 +500,16 @@ func TestMultipleProductTypesPrivateChannels(t *testing.T) {
 	// Test subscriptions with different product types for private channels
 	client.SubscribeOrders("USDT-FUTURES", handler)
 	client.SubscribeOrders("COIN-FUTURES", handler)
-	client.SubscribeFills("", "USDT-FUTURES", handler)
-	client.SubscribeFills("", "COIN-FUTURES", handler)
+	client.SubscribeFills("default", "USDT-FUTURES", handler)
+	client.SubscribeFills("default", "COIN-FUTURES", handler)
 
-	assert.True(t, client.IsSubscribed(ChannelOrders, "", "USDT-FUTURES"))
-	assert.True(t, client.IsSubscribed(ChannelOrders, "", "COIN-FUTURES"))
-	assert.True(t, client.IsSubscribed(ChannelFill, "", "USDT-FUTURES"))
-	assert.True(t, client.IsSubscribed(ChannelFill, "", "COIN-FUTURES"))
+	assert.True(t, client.IsSubscribed(ChannelOrders, "default", "USDT-FUTURES"))
+	assert.True(t, client.IsSubscribed(ChannelOrders, "default", "COIN-FUTURES"))
+	assert.True(t, client.IsSubscribed(ChannelFill, "default", "USDT-FUTURES"))
+	assert.True(t, client.IsSubscribed(ChannelFill, "default", "COIN-FUTURES"))
 
 	// These should not be subscribed
-	assert.False(t, client.IsSubscribed(ChannelPositions, "", "USDT-FUTURES"))
+	assert.False(t, client.IsSubscribed(ChannelPositions, "default", "USDT-FUTURES"))
 	assert.False(t, client.IsSubscribed(ChannelAccount, "", "COIN-FUTURES"))
 
 	assert.Equal(t, 4, client.GetSubscriptionCount())
@@ -520,19 +520,19 @@ func TestPrivateChannelSubscriptionArgs(t *testing.T) {
 	args1 := SubscriptionArgs{
 		ProductType: "USDT-FUTURES",
 		Channel:     ChannelOrders,
-		Symbol:      "", // Private channels use empty symbol
+		Symbol:      "default",
 	}
 
 	args2 := SubscriptionArgs{
 		ProductType: "USDT-FUTURES",
 		Channel:     ChannelOrders,
-		Symbol:      "", // Private channels use empty symbol
+		Symbol:      "default",
 	}
 
 	args3 := SubscriptionArgs{
 		ProductType: "COIN-FUTURES",
 		Channel:     ChannelOrders,
-		Symbol:      "", // Private channels use empty symbol
+		Symbol:      "default",
 	}
 
 	// Same args should be equal
@@ -560,7 +560,7 @@ func TestMixedPublicAndPrivateSubscriptions(t *testing.T) {
 	client.SubscribeTicker("BTCUSDT", "USDT-FUTURES", handler)
 	client.SubscribeOrders("USDT-FUTURES", handler)
 	client.SubscribeCandles("ETHUSDT", "USDT-FUTURES", Timeframe1m, handler)
-	client.SubscribeFills("", "USDT-FUTURES", handler)
+	client.SubscribeFills("default", "USDT-FUTURES", handler)
 	client.SubscribeOrderBook("ADAUSDT", "USDT-FUTURES", handler)
 	client.SubscribePositions("USDT-FUTURES", handler)
 
@@ -568,9 +568,9 @@ func TestMixedPublicAndPrivateSubscriptions(t *testing.T) {
 
 	// Verify each subscription type
 	assert.True(t, client.IsSubscribed(ChannelTicker, "BTCUSDT", "USDT-FUTURES"))
-	assert.True(t, client.IsSubscribed(ChannelOrders, "", "USDT-FUTURES"))
+	assert.True(t, client.IsSubscribed(ChannelOrders, "default", "USDT-FUTURES"))
 	assert.True(t, client.IsSubscribed("candle1m", "ETHUSDT", "USDT-FUTURES"))
-	assert.True(t, client.IsSubscribed(ChannelFill, "", "USDT-FUTURES"))
+	assert.True(t, client.IsSubscribed(ChannelFill, "default", "USDT-FUTURES"))
 	assert.True(t, client.IsSubscribed(ChannelBooks, "ADAUSDT", "USDT-FUTURES"))
 	assert.True(t, client.IsSubscribed(ChannelPositions, "default", "USDT-FUTURES"))
 }
@@ -640,7 +640,7 @@ func TestPrivateChannelHandlerInvocation(t *testing.T) {
 	args := SubscriptionArgs{
 		ProductType: "USDT-FUTURES",
 		Channel:     ChannelOrders,
-		Symbol:      "", // Private channels use empty symbol
+		Symbol:      "default",
 	}
 
 	storedHandler, exists := client.subscriptions[args]
@@ -659,7 +659,7 @@ func TestAllPrivateChannelTypes(t *testing.T) {
 
 	// Subscribe to all private channel types
 	client.SubscribeOrders("USDT-FUTURES", handler)
-	client.SubscribeFills("", "USDT-FUTURES", handler)
+	client.SubscribeFills("default", "USDT-FUTURES", handler)
 	client.SubscribePositions("USDT-FUTURES", handler)
 	client.SubscribeAccount("", "USDT-FUTURES", handler)
 	client.SubscribePlanOrders("USDT-FUTURES", handler)
@@ -681,9 +681,9 @@ func TestAllPrivateChannelTypes(t *testing.T) {
 
 	for _, channel := range expectedChannels {
 		// Positions channel uses "default" as symbol; others use empty.
-		symbol := ""
-		if channel == ChannelPositions {
-			symbol = "default"
+		symbol := "default"
+		if channel == ChannelAccount || channel == ChannelPlanOrder {
+			symbol = ""
 		}
 		assert.True(t, client.IsSubscribed(channel, symbol, "USDT-FUTURES"))
 
