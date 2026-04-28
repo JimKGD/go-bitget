@@ -34,12 +34,12 @@ const (
 	ChannelBooks       = "books"        // Full order book depth
 	ChannelBooks5      = "books5"       // Top 5 order book levels
 	ChannelBooks15     = "books15"      // Top 15 order book levels
-	ChannelTrade       = "trade"        // Real-time trade executions
+	ChannelTrade       = "publicTrade"  // Real-time trade executions
 	ChannelMarkPrice   = "mark-price"   // Mark price updates
 	ChannelFundingTime = "funding-time" // Funding rate and time
 
 	// Private channels (require authentication)
-	ChannelOrders    = "orders"     // Real-time order updates
+	ChannelOrders    = "order"      // Real-time order updates
 	ChannelFill      = "fill"       // Real-time fill/execution updates
 	ChannelPositions = "positions"  // Real-time position updates
 	ChannelAccount   = "account"    // Account balance updates
@@ -62,7 +62,7 @@ const (
 func (c *BaseWsClient) SubscribeTicker(symbol, productType string, handler OnReceive) {
 	args := SubscriptionArgs{
 		ProductType: productType,
-		Channel:     ChannelTicker,
+		Topic:       ChannelTicker,
 		Symbol:      symbol,
 	}
 	c.setSubscription(args, handler)
@@ -88,7 +88,7 @@ func (c *BaseWsClient) SubscribeCandles(symbol, productType, timeframe string, h
 
 	args := SubscriptionArgs{
 		ProductType: productType,
-		Channel:     channelName,
+		Topic:       channelName,
 		Symbol:      symbol,
 	}
 
@@ -112,7 +112,7 @@ func (c *BaseWsClient) SubscribeCandles(symbol, productType, timeframe string, h
 func (c *BaseWsClient) SubscribeOrderBook(symbol, productType string, handler OnReceive) {
 	args := SubscriptionArgs{
 		ProductType: productType,
-		Channel:     ChannelBooks,
+		Topic:       ChannelBooks,
 		Symbol:      symbol,
 	}
 
@@ -136,7 +136,7 @@ func (c *BaseWsClient) SubscribeOrderBook(symbol, productType string, handler On
 func (c *BaseWsClient) SubscribeOrderBook5(symbol, productType string, handler OnReceive) {
 	args := SubscriptionArgs{
 		ProductType: productType,
-		Channel:     ChannelBooks5,
+		Topic:       ChannelBooks5,
 		Symbol:      symbol,
 	}
 
@@ -160,7 +160,7 @@ func (c *BaseWsClient) SubscribeOrderBook5(symbol, productType string, handler O
 func (c *BaseWsClient) SubscribeOrderBook15(symbol, productType string, handler OnReceive) {
 	args := SubscriptionArgs{
 		ProductType: productType,
-		Channel:     ChannelBooks15,
+		Topic:       ChannelBooks15,
 		Symbol:      symbol,
 	}
 
@@ -184,7 +184,7 @@ func (c *BaseWsClient) SubscribeOrderBook15(symbol, productType string, handler 
 func (c *BaseWsClient) SubscribeTrades(symbol, productType string, handler OnReceive) {
 	args := SubscriptionArgs{
 		ProductType: productType,
-		Channel:     ChannelTrade,
+		Topic:       ChannelTrade,
 		Symbol:      symbol,
 	}
 
@@ -208,7 +208,7 @@ func (c *BaseWsClient) SubscribeTrades(symbol, productType string, handler OnRec
 func (c *BaseWsClient) SubscribeMarkPrice(symbol, productType string, handler OnReceive) {
 	args := SubscriptionArgs{
 		ProductType: productType,
-		Channel:     ChannelMarkPrice,
+		Topic:       ChannelMarkPrice,
 		Symbol:      symbol,
 	}
 
@@ -232,7 +232,7 @@ func (c *BaseWsClient) SubscribeMarkPrice(symbol, productType string, handler On
 func (c *BaseWsClient) SubscribeFundingTime(symbol, productType string, handler OnReceive) {
 	args := SubscriptionArgs{
 		ProductType: productType,
-		Channel:     ChannelFundingTime,
+		Topic:       ChannelFundingTime,
 		Symbol:      symbol,
 	}
 
@@ -254,7 +254,7 @@ func (c *BaseWsClient) SubscribeFundingTime(symbol, productType string, handler 
 func (c *BaseWsClient) Unsubscribe(channel, symbol, productType string) {
 	args := SubscriptionArgs{
 		ProductType: productType,
-		Channel:     channel,
+		Topic:       channel,
 		Symbol:      symbol,
 	}
 
@@ -345,7 +345,7 @@ func (c *BaseWsClient) GetActiveSubscriptions() map[SubscriptionArgs]OnReceive {
 func (c *BaseWsClient) IsSubscribed(channel, symbol, productType string) bool {
 	args := SubscriptionArgs{
 		ProductType: productType,
-		Channel:     channel,
+		Topic:       channel,
 		Symbol:      symbol,
 	}
 
@@ -378,9 +378,8 @@ func (c *BaseWsClient) IsSubscribed(channel, symbol, productType string) bool {
 //	})
 func (c *BaseWsClient) SubscribeOrders(productType string, handler OnReceive) {
 	args := SubscriptionArgs{
-		ProductType: productType,
-		Channel:     ChannelOrders,
-		Symbol:      "default",
+		ProductType: "UTA",
+		Topic:       ChannelOrders,
 	}
 
 	c.setSubscription(args, handler)
@@ -402,9 +401,8 @@ func (c *BaseWsClient) SubscribeOrders(productType string, handler OnReceive) {
 //	})
 func (c *BaseWsClient) SubscribeFills(symbol string, productType string, handler OnReceive) {
 	args := SubscriptionArgs{
-		ProductType: productType,
-		Channel:     ChannelFill,
-		Symbol:      symbol,
+		ProductType: "UTA",
+		Topic:       ChannelFill,
 	}
 
 	c.setSubscription(args, handler)
@@ -427,7 +425,7 @@ func (c *BaseWsClient) SubscribeFills(symbol string, productType string, handler
 func (c *BaseWsClient) SubscribePositions(productType string, handler OnReceive) {
 	args := SubscriptionArgs{
 		ProductType: productType,
-		Channel:     ChannelPositions,
+		Topic:       ChannelPositions,
 		Symbol:      "default",
 	}
 
@@ -450,9 +448,8 @@ func (c *BaseWsClient) SubscribePositions(productType string, handler OnReceive)
 //	})
 func (c *BaseWsClient) SubscribeAccount(coin string, productType string, handler OnReceive) {
 	args := SubscriptionArgs{
-		ProductType: productType,
-		Channel:     ChannelAccount,
-		Coin:        coin,
+		ProductType: "UTA",
+		Topic:       ChannelAccount,
 	}
 
 	c.setSubscription(args, handler)
@@ -475,7 +472,7 @@ func (c *BaseWsClient) SubscribeAccount(coin string, productType string, handler
 func (c *BaseWsClient) SubscribePlanOrders(productType string, handler OnReceive) {
 	args := SubscriptionArgs{
 		ProductType: productType,
-		Channel:     ChannelPlanOrder,
+		Topic:       ChannelPlanOrder,
 	}
 
 	c.setSubscription(args, handler)

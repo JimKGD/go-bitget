@@ -26,8 +26,8 @@ type WebSocketMessage struct {
 // SubscriptionArgs represents the subscription argument structure used throughout the codebase
 type SubscriptionArgs struct {
 	ProductType string `json:"instType"`
-	Channel     string `json:"channel"`
-	Symbol      string `json:"instId,omitempty"`
+	Topic       string `json:"topic"`
+	Symbol      string `json:"symbol,omitempty"`
 	Coin        string `json:"coin,omitempty"`
 }
 

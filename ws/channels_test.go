@@ -64,7 +64,7 @@ func TestSubscribeTicker(t *testing.T) {
 	subscriptions := client.GetActiveSubscriptions()
 	expectedArgs := SubscriptionArgs{
 		ProductType: "USDT-FUTURES",
-		Channel:     ChannelTicker,
+		Topic:       ChannelTicker,
 		Symbol:      "BTCUSDT",
 	}
 	assert.Contains(t, subscriptions, expectedArgs)
@@ -245,13 +245,13 @@ func TestGetActiveSubscriptions(t *testing.T) {
 
 	expectedArgs1 := SubscriptionArgs{
 		ProductType: "USDT-FUTURES",
-		Channel:     ChannelTicker,
+		Topic:       ChannelTicker,
 		Symbol:      "BTCUSDT",
 	}
 
 	expectedArgs2 := SubscriptionArgs{
 		ProductType: "USDT-FUTURES",
-		Channel:     "candle1h",
+		Topic:       "candle1h",
 		Symbol:      "ETHUSDT",
 	}
 
@@ -308,19 +308,19 @@ func TestSubscriptionArgs(t *testing.T) {
 	// Test that SubscriptionArgs struct works correctly as map key
 	args1 := SubscriptionArgs{
 		ProductType: "USDT-FUTURES",
-		Channel:     ChannelTicker,
+		Topic:       ChannelTicker,
 		Symbol:      "BTCUSDT",
 	}
 
 	args2 := SubscriptionArgs{
 		ProductType: "USDT-FUTURES",
-		Channel:     ChannelTicker,
+		Topic:       ChannelTicker,
 		Symbol:      "BTCUSDT",
 	}
 
 	args3 := SubscriptionArgs{
 		ProductType: "COIN-FUTURES",
-		Channel:     ChannelTicker,
+		Topic:       ChannelTicker,
 		Symbol:      "BTCUSDT",
 	}
 
@@ -355,7 +355,7 @@ func TestHandlerInvocation(t *testing.T) {
 	// Simulate getting the handler (this would normally be done by GetListener)
 	args := SubscriptionArgs{
 		ProductType: "USDT-FUTURES",
-		Channel:     ChannelTicker,
+		Topic:       ChannelTicker,
 		Symbol:      "BTCUSDT",
 	}
 
@@ -519,19 +519,19 @@ func TestPrivateChannelSubscriptionArgs(t *testing.T) {
 	// Test that private channel subscription args work correctly as map keys
 	args1 := SubscriptionArgs{
 		ProductType: "USDT-FUTURES",
-		Channel:     ChannelOrders,
+		Topic:       ChannelOrders,
 		Symbol:      "default",
 	}
 
 	args2 := SubscriptionArgs{
 		ProductType: "USDT-FUTURES",
-		Channel:     ChannelOrders,
+		Topic:       ChannelOrders,
 		Symbol:      "default",
 	}
 
 	args3 := SubscriptionArgs{
 		ProductType: "COIN-FUTURES",
-		Channel:     ChannelOrders,
+		Topic:       ChannelOrders,
 		Symbol:      "default",
 	}
 
@@ -639,7 +639,7 @@ func TestPrivateChannelHandlerInvocation(t *testing.T) {
 	// Simulate getting the handler for private channel
 	args := SubscriptionArgs{
 		ProductType: "USDT-FUTURES",
-		Channel:     ChannelOrders,
+		Topic:       ChannelOrders,
 		Symbol:      "default",
 	}
 
@@ -689,7 +689,7 @@ func TestAllPrivateChannelTypes(t *testing.T) {
 
 		args := SubscriptionArgs{
 			ProductType: "USDT-FUTURES",
-			Channel:     channel,
+			Topic:       channel,
 			Symbol:      symbol,
 		}
 		assert.Contains(t, subscriptions, args)

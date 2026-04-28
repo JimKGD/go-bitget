@@ -617,8 +617,8 @@ func (c *BaseWsClient) getListener(argJson any) OnReceive {
 
 	subscribeReq := SubscriptionArgs{
 		ProductType: getSubscriptionArg(mapData["instType"]),
-		Channel:     getSubscriptionArg(mapData["channel"]),
-		Symbol:      getSubscriptionArg(mapData["instId"]),
+		Topic:       getSubscriptionArg(mapData["topic"]),
+		Symbol:      getSubscriptionArg(mapData["symbol"]),
 		Coin:        getSubscriptionArg(mapData["coin"]),
 	}
 
@@ -701,7 +701,7 @@ func (c *BaseWsClient) restoreSubscriptions() {
 	restoredCount := 0
 	for _, args := range subscriptionsToRestore {
 		c.logger.Debug().
-			Str("channel", args.Channel).
+			Str("channel", args.Topic).
 			Str("symbol", args.Symbol).
 			Str("coin", args.Coin).
 			Str("productType", args.ProductType).
